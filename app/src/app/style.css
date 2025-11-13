@@ -106,33 +106,33 @@
 @media (prefers-color-scheme: dark) {
   :root {
     /* Text - Dark Mode */
-    --text-primary: #ffffff;
+    /* --text-primary: #ffffff;
     --text-secondary: #88899e;
     --text-tertiary: #626377;
-    --text-on: #ffffff;
+    --text-on: #ffffff; */
 
     /* Surface - Dark Mode */
-    --surface-layer: rgba(17, 13, 41, 0.3);
+    /* --surface-layer: rgba(17, 13, 41, 0.3);
     --surface-layer-hover: rgba(17, 13, 41, 0.6);
     --surface-popover: #13172b;
-    --surface-inverse: #ffffff;
+    --surface-inverse: #ffffff; */
 
     /* Border - Dark Mode */
-    --border-default: #d9d9d9;
+    /* --border-default: #d9d9d9; */
 
     /* Functional - Dark Mode */
-    --success-text: #70d2bb;
+    /* --success-text: #70d2bb;
     --success-bg: #053429;
     --success-border: #197361;
 
     --error-text: #ce7e7d;
     --error-bg: #400a09;
-    --error-border: #6d1514;
+    --error-border: #6d1514; */
 
     /* Palette - Dark Mode */
-    --purple: #8593f8;
+    /* --purple: #8593f8;
     --yellow: #fab83d;
-    --blue: #87e9ff;
+    --blue: #87e9ff; */
   }
 }
 
@@ -354,11 +354,11 @@
       "calt" 1;
   }
 
-  @media (prefers-color-scheme: dark) {
+  /* @media (prefers-color-scheme: dark) {
     body {
-      /* background: #0f0f10; */
+      background: #0f0f10;
     }
-  }
+  } */
 
   /* Smooth scrolling */
   html {
