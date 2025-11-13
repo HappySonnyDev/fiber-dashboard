@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/features/dashboard/hooks/useDashboard";
-import Dashboard from "@/features/dashboard/components/Dashboard";
+// import Dashboard from "@/features/dashboard/components/Dashboard";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
 export default function DashboardPage() {
@@ -11,12 +11,10 @@ export default function DashboardPage() {
     <QueryClientProvider client={queryClient}>
       {/* Hero Section */}
       <section className="py-20 px-4">
-        <div className="container mx-auto max-w-6xl">
-          {/* Dashboard Content */}
-          <Suspense fallback={<DashboardSkeleton />}>
-            <Dashboard />
-          </Suspense>
-        </div>
+        {/* Dashboard Content */}
+        <Suspense fallback={<DashboardSkeleton />}>
+          {/* <Dashboard /> */}
+        </Suspense>
       </section>
     </QueryClientProvider>
   );
