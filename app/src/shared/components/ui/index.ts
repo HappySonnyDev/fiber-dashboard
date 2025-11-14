@@ -1,4 +1,3 @@
-// Shared UI components exports
 export * from "./badge";
 export * from "./button";
 export * from "./card";
@@ -6,3 +5,8 @@ export * from "./separator";
 export * from "./skeleton";
 export * from "./CustomSelect";
 export * from "./CustomMenu";
+export * from "./SectionHeader";
+export * from "./EasyTable";
+export { default as GlassButton } from "./GlassButton";
+export { default as KpiCard } from "./KpiCard";
+export { GlassCardContainer } from "./GlassCardContainer";

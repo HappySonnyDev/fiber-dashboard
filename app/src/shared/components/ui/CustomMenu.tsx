@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { Separator } from './separator';
+import GlassButton from './GlassButton';
 
 export interface MenuItem {
   value: string;
@@ -91,17 +91,11 @@ export function CustomMenu({
   return (
     <>
       {/* 触发按钮 */}
-      <div
-        ref={triggerRef}
-        onClick={handleToggle}
-        className="glass-card flex justify-center items-center w-12 h-12 p-2.5 rounded-full shrink-0 cursor-pointer transition-colors"
-      >
-        <Image 
-          src={isOpen ? "/close.svg" : "/collapse.svg"} 
-          alt="Menu" 
-          width={16} 
-          height={16} 
-          className="w-4 h-4" 
+      <div ref={triggerRef}>
+        <GlassButton
+          icon={isOpen ? "/close.svg" : "/collapse.svg"}
+          alt="Menu"
+          onClick={handleToggle}
         />
       </div>
 
@@ -167,7 +161,7 @@ export function CustomMenu({
                     </div>
                   </div>
                   {isSelected && (
-                    <Image
+                    <img
                       src="/check.svg"
                       alt="Selected"
                       width={16}

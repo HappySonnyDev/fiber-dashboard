@@ -5,15 +5,17 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/features/dashboard/hooks/useDashboard";
 // import Dashboard from "@/features/dashboard/components/Dashboard";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { DashboardNew } from "@/features/dashboard/components/DashboardNew";
 
 export default function DashboardPage() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Hero Section */}
-      <section className="py-20 px-4">
+      <section className="py-10 px-4">
         {/* Dashboard Content */}
         <Suspense fallback={<DashboardSkeleton />}>
           {/* <Dashboard /> */}
+          <DashboardNew />
         </Suspense>
       </section>
     </QueryClientProvider>

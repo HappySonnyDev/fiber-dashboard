@@ -70,7 +70,7 @@ export default function NavBarNew() {
       <div className="flex items-center justify-between relative h-12">
       {/* Left item - Logo */}
       <div className="flex items-center">
-        <div className="glass-card flex justify-center items-center w-[207px] h-12 p-2.5 gap-2.5 rounded-[40px] shrink-0 md:w-12 md:h-12 md:p-2.5 md:rounded-full">
+        <div className="glass-card flex justify-center items-center w-12 h-12 p-2.5 rounded-full shrink-0 lg:w-[207px] lg:h-12 lg:gap-2.5 lg:rounded-[40px]">
           <span className="type-button1 text-primary">Logo</span>
         </div>
       </div>

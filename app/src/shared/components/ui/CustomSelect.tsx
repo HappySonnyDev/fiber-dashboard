@@ -15,6 +15,7 @@ export interface CustomSelectProps {
   value?: string;
   onChange?: (value: string) => void;
   defaultValue?: string;
+  className?: string;
 }
 
 export function CustomSelect({
@@ -22,6 +23,7 @@ export function CustomSelect({
   value: controlledValue,
   onChange,
   defaultValue,
+  className = '',
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(
@@ -65,7 +67,7 @@ export function CustomSelect({
   };
 
   return (
-    <div ref={containerRef} className="relative w-[207px] h-10">
+    <div ref={containerRef} className={`relative w-[207px] h-10 ${className}`.trim()}>
       {/* 主按钮 - 始终显示 */}
       <div
         onClick={handleToggle}
