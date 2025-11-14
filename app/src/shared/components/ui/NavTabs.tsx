@@ -10,14 +10,20 @@ export interface TabItem {
 interface TabsProps {
   items: TabItem[];
   defaultTab?: string;
+  value?: string; // 受控模式
   onTabChange?: (tabId: string) => void;
 }
 
-export default function Tabs({ items, defaultTab, onTabChange }: TabsProps) {
-  const [selectedTab, setSelectedTab] = useState<string>(defaultTab || items[0]?.id || '');
+export default function Tabs({ items, defaultTab, value: controlledValue, onTabChange }: TabsProps) {
+  const [internalTab, setInternalTab] = useState<string>(defaultTab || items[0]?.id || '');
+
+  // 支持受控和非受控模式
+  const selectedTab = controlledValue !== undefined ? controlledValue : internalTab;
 
   const handleTabClick = (tabId: string) => {
-    setSelectedTab(tabId);
+    if (controlledValue === undefined) {
+      setInternalTab(tabId);
+    }
     onTabChange?.(tabId);
   };
 

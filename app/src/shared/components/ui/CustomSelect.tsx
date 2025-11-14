@@ -94,7 +94,7 @@ export function CustomSelect({
 
       {/* 下拉菜单 - 绝对定位，完全脱离文档流 */}
       {isOpen && (
-        <div className="glass-card absolute top-full -mt-9 left-0 w-full z-50 rounded-xl flex flex-col">
+        <div className="glass-card absolute top-full mt-2 left-0 w-full z-50 rounded-xl flex flex-col">
           {options.map((option, index) => {
             const isSelected = option.value === value;
             const isFirst = index === 0;

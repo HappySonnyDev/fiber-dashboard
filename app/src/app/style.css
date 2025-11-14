@@ -207,6 +207,9 @@
   .bg-blue {
     background-color: var(--blue);
   }
+  .bg-border{
+    background-color: var(--border-default);
+  }
 }
 
 /* Utilities — Typography */
@@ -420,7 +423,6 @@
 .glass-card {
   background: var(--surface-layer, rgba(255, 255, 255, 0.30));
   backdrop-filter: blur(2px);
-  position: relative;
 }
 
 .glass-card::before {
