@@ -167,6 +167,10 @@
   .border {
     border-color: var(--border-default);
   }
+  .border-color{
+       border-color: var(--border-default);
+ 
+  }
 
   .text-success {
     color: var(--success-text);

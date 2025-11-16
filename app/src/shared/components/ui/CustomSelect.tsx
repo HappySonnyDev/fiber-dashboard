@@ -15,6 +15,7 @@ export interface CustomSelectProps {
   value?: string;
   onChange?: (value: string) => void;
   defaultValue?: string;
+  placeholder?: string; // 未选择时显示的占位文字
   className?: string;
 }
 
@@ -23,16 +24,17 @@ export function CustomSelect({
   value: controlledValue,
   onChange,
   defaultValue,
+  placeholder,
   className = '',
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(
-    controlledValue || defaultValue || options[0]?.value || ''
+    controlledValue || defaultValue || ''
   );
   const containerRef = useRef<HTMLDivElement>(null);
 
   const value = controlledValue !== undefined ? controlledValue : selectedValue;
-  const selectedOption = options.find((opt) => opt.value === value) || options[0];
+  const selectedOption = options.find((opt) => opt.value === value);
 
   // 点击外部关闭下拉框
   useEffect(() => {
@@ -67,7 +69,7 @@ export function CustomSelect({
   };
 
   return (
-    <div ref={containerRef} className={`relative w-[207px] h-10 ${className}`.trim()}>
+    <div ref={containerRef} className={`relative h-10 ${className || 'w-[207px]'}`.trim()}>
       {/* 主按钮 - 始终显示 */}
       <div
         onClick={handleToggle}
@@ -79,8 +81,10 @@ export function CustomSelect({
               {selectedOption.icon}
             </div>
           )}
-          <div className="justify-start text-primary text-base font-medium font-['Inter'] leading-5">
-            {selectedOption?.label}
+          <div className={`justify-start font-medium font-['Inter'] leading-5 ${
+            selectedOption ? 'text-base text-primary' : 'type-button1 text-primary'
+          }`}>
+            {selectedOption?.label || placeholder || 'Select...'}
           </div>
         </div>
         <div data-size="16" className="w-4 h-4 relative overflow-hidden">

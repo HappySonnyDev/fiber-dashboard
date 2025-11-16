@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { GlassButton, CustomSelect, SelectOption } from "@/shared/components/ui";
 
 export interface SectionHeaderProps {
@@ -26,6 +27,17 @@ export function SectionHeader({
   onSelectChange,
   selectClassName = "w-[154px] md:w-[104px]",
 }: SectionHeaderProps) {
+  const [isRotating, setIsRotating] = useState(false);
+
+  const handleRefresh = () => {
+    if (onRefresh) {
+      setIsRotating(true);
+      onRefresh();
+      // 动画结束后重置状态
+      setTimeout(() => setIsRotating(false), 300);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <span className="type-h2 text-primary">{title}</span>
@@ -37,7 +49,12 @@ export function SectionHeader({
             </span>
           )}
           {onRefresh && (
-            <GlassButton icon="/refresh.svg" alt="refresh" onClick={onRefresh} />
+            <GlassButton 
+              icon="/refresh.svg" 
+              alt="refresh" 
+              onClick={handleRefresh}
+              className={isRotating ? "animate-spin" : ""}
+            />
           )}
         </div>
         {selectOptions && selectValue !== undefined && onSelectChange && (

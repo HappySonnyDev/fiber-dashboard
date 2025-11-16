@@ -1,17 +1,26 @@
-'use client';
+"use client";
 
 import "./NavBarNew.css";
 import Tabs, { TabItem } from "@/shared/components/ui/NavTabs";
-import { CustomSelect, SelectOption } from "@/shared/components/ui/CustomSelect";
-import { CustomMenu, MenuItem, MenuOption } from "@/shared/components/ui/CustomMenu";
+import {
+  CustomSelect,
+  SelectOption,
+} from "@/shared/components/ui/CustomSelect";
+import {
+  CustomMenu,
+  MenuItem,
+  MenuOption,
+} from "@/shared/components/ui/CustomMenu";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+
 
 // 基础导航项数据
 const NAV_ITEMS_DATA = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'nodes', label: 'Nodes' },
-  { id: 'channels', label: 'Channels' },
+  { id: "overview", label: "Overview", path: "/" },
+  { id: "nodes", label: "Nodes", path: "/nodes" },
+  { id: "channels", label: "Channels", path: "/channels" },
 ];
 
 // 为 Tabs 组件转换数据格式
@@ -25,8 +34,8 @@ const MENU_ITEMS: MenuItem[] = NAV_ITEMS_DATA.map(item => ({
 
 // 基础网络选项数据
 const NETWORK_DATA = [
-  { value: 'mainnet', label: 'Mainnet (Meepo)', iconSrc: '/mainnet.svg' },
-  { value: 'testnet', label: 'Testnet (Meepo)', iconSrc: '/testnet.svg' },
+  { value: "mainnet", label: "Mainnet (Meepo)", iconSrc: "/mainnet.svg" },
+  { value: "testnet", label: "Testnet (Meepo)", iconSrc: "/testnet.svg" },
 ];
 
 // 为 CustomSelect 组件转换数据格式
@@ -34,7 +43,13 @@ const NETWORK_OPTIONS: SelectOption[] = NETWORK_DATA.map(network => ({
   value: network.value,
   label: network.label,
   icon: (
-    <Image src={network.iconSrc} alt={network.label} width={16} height={16} className="w-4 h-4" />
+    <Image
+      src={network.iconSrc}
+      alt={network.label}
+      width={16}
+      height={16}
+      className="w-4 h-4"
+    />
   ),
 }));
 
@@ -43,64 +58,96 @@ const MENU_OPTIONS: MenuOption[] = NETWORK_DATA.map(network => ({
   value: network.value,
   label: network.label,
   icon: (
-    <Image src={network.iconSrc} alt={network.label} width={16} height={16} className="w-4 h-4" />
+    <Image
+      src={network.iconSrc}
+      alt={network.label}
+      width={16}
+      height={16}
+      className="w-4 h-4"
+    />
   ),
 }));
 
 export default function NavBarNew() {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // 根据当前路径找到对应的 tab ID
+  const getTabIdFromPath = (path: string) => {
+    // 精确匹配
+    const exactMatch = NAV_ITEMS_DATA.find(item => item.path === path);
+    if (exactMatch) return exactMatch.id;
+    
+    // 动态路由匹配（例如 /nodes/xxx 或 /node/xxx 匹配到 nodes）
+    if (path.startsWith('/node')) return 'nodes';
+    if (path.startsWith('/channel')) return 'channels';
+    
+    return "overview";
+  };
+
   // 统一管理选中的 tab 和 network 状态
-  const [selectedTab, setSelectedTab] = useState('overview');
-  const [selectedNetwork, setSelectedNetwork] = useState('mainnet');
-  console.log(selectedNetwork,'nerr')
+  const [selectedTab, setSelectedTab] = useState(() => getTabIdFromPath(pathname));
+  const [selectedNetwork, setSelectedNetwork] = useState("mainnet");
+
+  // 监听路由变化,同步更新 selectedTab
+  useEffect(() => {
+    const tabId = getTabIdFromPath(pathname);
+    setSelectedTab(tabId);
+  }, [pathname]);
 
   const handleTabChange = (tabId: string) => {
     setSelectedTab(tabId);
-    console.log('Tab changed to:', tabId);
-    // 这里可以添加路由跳转或其他业务逻辑
+    const selectedItem = NAV_ITEMS_DATA.find(item => item.id === tabId);
+    if (selectedItem) {
+      router.push(selectedItem.path);
+    }
   };
 
   const handleNetworkChange = (network: string) => {
     setSelectedNetwork(network);
-    console.log('Network changed to:', network);
+    console.log("Network changed to:", network);
     // 这里可以添加网络切换逻辑
   };
 
   return (
     <nav className="navbar-fixed z-50">
       <div className="flex items-center justify-between relative h-12">
-      {/* Left item - Logo */}
-      <div className="flex items-center">
-        <div className="glass-card flex justify-center items-center w-12 h-12 p-2.5 rounded-full shrink-0 lg:w-[207px] lg:h-12 lg:gap-2.5 lg:rounded-[40px]">
-          <span className="type-button1 text-primary">Logo</span>
+        {/* Left item - Logo */}
+        <div className="flex items-center">
+          <div className="glass-card flex justify-center items-center w-12 h-12 p-2.5 rounded-full shrink-0 lg:w-[207px] lg:h-12 lg:gap-2.5 lg:rounded-[40px]">
+            <span className="type-button1 text-primary">Logo</span>
+          </div>
         </div>
-      </div>
 
-      {/* Center item - Main NavBar (hidden on mobile and tablet, visible on desktop) */}
-      <div className="hidden lg:flex items-center justify-center px-6">
-        <Tabs items={NAV_ITEMS} value={selectedTab} onTabChange={handleTabChange} />
-        
-      </div>
+        {/* Center item - Main NavBar (hidden on mobile and tablet, visible on desktop) */}
+        <div className="hidden lg:flex items-center justify-center px-6">
+          <Tabs
+            items={NAV_ITEMS}
+            value={selectedTab}
+            onTabChange={handleTabChange}
+          />
+        </div>
 
-      {/* Right item - Network Select (hidden on mobile and tablet, visible on desktop) */}
-      <div className="hidden lg:flex items-center relative h-12">
-        <CustomSelect
-          options={NETWORK_OPTIONS}
-          value={selectedNetwork}
-          onChange={handleNetworkChange}
-        />
-      </div>
+        {/* Right item - Network Select (hidden on mobile and tablet, visible on desktop) */}
+        <div className="hidden lg:flex items-center relative h-12">
+          <CustomSelect
+            options={NETWORK_OPTIONS}
+            value={selectedNetwork}
+            onChange={handleNetworkChange}
+          />
+        </div>
 
-      {/* Collapse button with CustomMenu (visible on mobile and tablet, hidden on desktop) */}
-      <div className="flex lg:hidden items-center">
-        <CustomMenu
-          menuItems={MENU_ITEMS}
-          selectedMenuItem={selectedTab}
-          onMenuItemChange={handleTabChange}
-          options={MENU_OPTIONS}
-          selectedOption={selectedNetwork}
-          onOptionChange={handleNetworkChange}
-        />
-      </div>
+        {/* Collapse button with CustomMenu (visible on mobile and tablet, hidden on desktop) */}
+        <div className="flex lg:hidden items-center">
+          <CustomMenu
+            menuItems={MENU_ITEMS}
+            selectedMenuItem={selectedTab}
+            onMenuItemChange={handleTabChange}
+            options={MENU_OPTIONS}
+            selectedOption={selectedNetwork}
+            onOptionChange={handleNetworkChange}
+          />
+        </div>
       </div>
     </nav>
   );

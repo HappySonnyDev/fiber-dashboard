@@ -38,7 +38,7 @@ export default function RootLayout({
       >
         <NetworkProvider>
           <NavBarNew />
-          <main className="flex-1 container mt-[60px] md:mt-[72px]">{children}</main>
+          <main className="flex-1 container mt-[60px] md:mt-[72px] py-10">{children}</main>
           <FooterNew />
         </NetworkProvider>
       </body>
