@@ -13,6 +13,7 @@ import {
   CustomSelect,
   SelectOption,
 } from "@/shared/components/ui";
+import NodeNetworkMap, { NodeMapData, NodeConnectionData } from "@/shared/components/chart/NodeNetworkMap";
 
 // 节点数据类型
 interface NodeData extends Record<string, unknown> {
@@ -92,6 +93,94 @@ const mockNodesData: NodeData[] = [
   },
 ];
 
+// Mock 数据：节点地理位置（用于地图显示）
+const mockNodeMapData: NodeMapData[] = [
+  {
+    nodeId: "0x026ba...b1ce",
+    nodeName: "fiber-test-OSA-node-1-2",
+    city: "Osaka",
+    country: "Japan",
+    latitude: 34.6937,
+    longitude: 135.5023,
+    capacity: 5800000,
+  },
+  {
+    nodeId: "0x026ba...a8f2",
+    nodeName: "fiber-test-SG-node-3",
+    city: "Singapore",
+    country: "Singapore",
+    latitude: 1.3521,
+    longitude: 103.8198,
+    capacity: 4200000,
+  },
+  {
+    nodeId: "0x03f1c...d4e9",
+    nodeName: "fiber-prod-US-node-12",
+    city: "New York",
+    country: "United States",
+    latitude: 40.7128,
+    longitude: -74.0060,
+    capacity: 7100000,
+  },
+  {
+    nodeId: "0x02d7...3ded",
+    nodeName: "fiber-node-us-west",
+    city: "San Francisco",
+    country: "United States",
+    latitude: 37.7749,
+    longitude: -122.4194,
+    capacity: 6500000,
+  },
+  {
+    nodeId: "0x03a1...7bef",
+    nodeName: "fiber-node-eu-central",
+    city: "Frankfurt",
+    country: "Germany",
+    latitude: 50.1109,
+    longitude: 8.6821,
+    capacity: 6200000,
+  },
+  {
+    nodeId: "0x06d4...5def",
+    nodeName: "fiber-node-oceania",
+    city: "Sydney",
+    country: "Australia",
+    latitude: -33.8688,
+    longitude: 151.2093,
+    capacity: 4800000,
+  },
+  {
+    nodeId: "0x07e5...8fgh",
+    nodeName: "fiber-node-sa",
+    city: "São Paulo",
+    country: "Brazil",
+    latitude: -23.5505,
+    longitude: -46.6333,
+    capacity: 3500000,
+  },
+  {
+    nodeId: "0x08f6...1hij",
+    nodeName: "fiber-node-africa",
+    city: "Cape Town",
+    country: "South Africa",
+    latitude: -33.9249,
+    longitude: 18.4241,
+    capacity: 2900000,
+  },
+];
+
+// Mock 数据：节点连接关系
+const mockConnectionData: NodeConnectionData[] = [
+  { fromNodeId: "0x026ba...b1ce", toNodeId: "0x026ba...a8f2" },
+  { fromNodeId: "0x026ba...b1ce", toNodeId: "0x03f1c...d4e9" },
+  { fromNodeId: "0x026ba...a8f2", toNodeId: "0x06d4...5def" },
+  { fromNodeId: "0x03f1c...d4e9", toNodeId: "0x02d7...3ded" },
+  { fromNodeId: "0x02d7...3ded", toNodeId: "0x03a1...7bef" },
+  { fromNodeId: "0x03f1c...d4e9", toNodeId: "0x07e5...8fgh" },
+  { fromNodeId: "0x06d4...5def", toNodeId: "0x08f6...1hij" },
+  { fromNodeId: "0x07e5...8fgh", toNodeId: "0x08f6...1hij" },
+];
+
 export const Nodes = () => {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,6 +235,7 @@ export const Nodes = () => {
       width: "w-48",
       sortable: false,
       showInfo: true,
+      infoTooltip: "The minimum CKB a peer must fund when opening a channel to this node",
     },
     {
       key: "lastSeen",
@@ -194,6 +284,16 @@ export const Nodes = () => {
         lastUpdated="Last updated: Oct 23, 12:35"
         onRefresh={handleRefresh}
       />
+      
+      {/* Network Map */}
+      <GlassCardContainer>
+        <NodeNetworkMap
+          nodes={mockNodeMapData}
+          connections={mockConnectionData}
+          height="600px"
+          title="Global Nodes Distribution"
+        />
+      </GlassCardContainer>
 
       <div className="flex justify-between items-center">
         <span className="type-h2">Active Nodes(300)</span>

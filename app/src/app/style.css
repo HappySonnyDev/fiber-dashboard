@@ -353,6 +353,12 @@
 }
 
 @layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
   body {
     background:
       linear-gradient(117deg, #f1f4f7 0%, #f1f4f7 50%, #f7e9bc 100%), #fff;
@@ -368,27 +374,24 @@
   } */
 
   /* Smooth scrolling */
-  html {
+  /* html {
     scroll-behavior: smooth;
+    scrollbar-gutter: stable;
   }
 
-  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    /* @apply bg-muted/20; */
   }
 
   ::-webkit-scrollbar-thumb {
-    /* @apply bg-muted-foreground/30 rounded-full; */
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    /* @apply bg-muted-foreground/50; */
-  }
+  } */
 }
 
 /* Custom Container */
