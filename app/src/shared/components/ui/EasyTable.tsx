@@ -81,9 +81,9 @@ export const EasyTable = ({
                 {columns.map((column) => (
                   <div
                     key={`${row.id}-${column.key}`}
-                    className={`${column.width || "flex-1"} pr-2 py-2 flex justify-start items-center gap-1.5`}
+                    className={`${column.width || "flex-1"} pr-2 py-2 flex justify-start items-center gap-1.5 min-w-0`}
                   >
-                    <div className="text-primary text-sm font-medium font-['Inter']">
+                    <div className="text-primary text-sm font-medium font-['Inter'] truncate w-full">
                       {column.format ? column.format(row[column.key], row) : row[column.key]}
                     </div>
                   </div>

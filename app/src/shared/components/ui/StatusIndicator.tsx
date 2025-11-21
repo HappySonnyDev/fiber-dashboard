@@ -11,6 +11,8 @@ export interface StatusIndicatorProps {
   mode?: IndicatorMode;
   /** 自定义类名 */
   className?: string;
+  /** 点击事件 */
+  onClick?: () => void;
 }
 
 export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
@@ -18,6 +20,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   color = "success",
   mode = "light",
   className = "",
+  onClick,
 }) => {
   // 根据颜色获取对应的背景色类或自定义颜色
   const getDotStyle = () => {
@@ -57,7 +60,8 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
 
   return (
     <div
-      className={`py-2.5 px-3 rounded-[40px] ${glassCardClass} ${currentModeStyle.outline} backdrop-blur-[5px] inline-flex justify-center items-center gap-2 ${currentModeStyle.container} ${className}`.trim()}
+      className={`py-2.5 px-3 rounded-[40px] ${glassCardClass} ${currentModeStyle.outline} backdrop-blur-[5px] inline-flex justify-center items-center gap-2 ${currentModeStyle.container} ${onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${className}`.trim()}
+      onClick={onClick}
     >
       <div 
         className={`w-2 h-2 rounded-full ${getDotStyle().className || ""}`}

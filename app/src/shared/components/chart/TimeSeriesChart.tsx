@@ -10,6 +10,7 @@ interface TimeSeriesChartProps {
   height?: string;
   className?: string;
   colors?: string[]; // 自定义线条颜色
+  timeRange?: "hourly" | "monthly" | "yearly"; // 时间维度
 }
 
 export default function TimeSeriesChart({
@@ -18,6 +19,7 @@ export default function TimeSeriesChart({
   height = "400px",
   className = "",
   colors = ["#7459e6", "#fab83d"], // 默认使用紫色和黄色
+  timeRange = "hourly", // 默认小时维度
 }: TimeSeriesChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
@@ -173,6 +175,12 @@ export default function TimeSeriesChart({
       },
       xAxis: {
         type: "time",
+        // 根据时间维度设置最小时间间隔
+        minInterval: timeRange === "yearly" 
+          ? 3600 * 24 * 1000 * 365 // 年度视图：至少1年间隔，只显示年份
+          : timeRange === "monthly"
+          ? 3600 * 24 * 1000 * 30 // 月度视图：至少1个月间隔，只显示月份
+          : 3600 * 24 * 1000, // 小时视图：至少1天间隔
         axisLine: {
           lineStyle: {
             color: borderColor,
@@ -184,9 +192,22 @@ export default function TimeSeriesChart({
           fontWeight: parseInt(mediumWeight) as 500,
           formatter: (value: number) => {
             const date = new Date(value);
-            const month = date.toLocaleString('en-US', { month: 'short' });
-            const day = date.getDate();
-            return `${month} ${day}`;
+            // 根据时间维度调整显示格式
+            if (timeRange === "yearly") {
+              // 年度视图：只显示年份
+              const year = date.getFullYear();
+              return `${year}`;
+            } else if (timeRange === "monthly") {
+              // 月度视图：只显示月份 "年-月"
+              const year = date.getFullYear();
+              const month = (date.getMonth() + 1).toString().padStart(2, '0');
+              return `${year}-${month}`;
+            } else {
+              // 小时视图：显示 "月-日"
+              const month = (date.getMonth() + 1).toString().padStart(2, '0');
+              const day = date.getDate().toString().padStart(2, '0');
+              return `${month}-${day}`;
+            }
           },
         },
         splitLine: {
@@ -288,7 +309,7 @@ export default function TimeSeriesChart({
     };
 
     chartInstance.current.setOption(option);
-  }, [data, title, colors]);
+  }, [data, title, colors, timeRange]);
 
   return <div ref={chartRef} style={{ height }} className={className} />;
 }

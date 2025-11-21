@@ -14,6 +14,7 @@ import {
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useNetwork } from "@/features/networks/context/NetworkContext";
 
 
 // 基础导航项数据
@@ -85,9 +86,11 @@ export default function NavBarNew() {
     return "overview";
   };
 
-  // 统一管理选中的 tab 和 network 状态
+  // 使用 NetworkContext 来管理网络状态
+  const { currentNetwork, switchNetwork } = useNetwork();
+  
+  // 统一管理选中的 tab 状态
   const [selectedTab, setSelectedTab] = useState(() => getTabIdFromPath(pathname));
-  const [selectedNetwork, setSelectedNetwork] = useState("mainnet");
 
   // 监听路由变化,同步更新 selectedTab
   useEffect(() => {
@@ -104,9 +107,8 @@ export default function NavBarNew() {
   };
 
   const handleNetworkChange = (network: string) => {
-    setSelectedNetwork(network);
+    switchNetwork(network as "mainnet" | "testnet");
     console.log("Network changed to:", network);
-    // 这里可以添加网络切换逻辑
   };
 
   return (
@@ -132,7 +134,7 @@ export default function NavBarNew() {
         <div className="hidden lg:flex items-center relative h-12">
           <CustomSelect
             options={NETWORK_OPTIONS}
-            value={selectedNetwork}
+            value={currentNetwork}
             onChange={handleNetworkChange}
           />
         </div>
@@ -144,7 +146,7 @@ export default function NavBarNew() {
             selectedMenuItem={selectedTab}
             onMenuItemChange={handleTabChange}
             options={MENU_OPTIONS}
-            selectedOption={selectedNetwork}
+            selectedOption={currentNetwork}
             onOptionChange={handleNetworkChange}
           />
         </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as echarts from "echarts";
-import Image from "next/image";
+import worldGeoJson from "@/features/dashboard/maps/world.json";
 
 export interface NodeMapData {
   nodeId: string;
@@ -16,7 +16,7 @@ export interface NodeMapData {
 
 export interface NodeConnectionData {
   fromNodeId: string;
-  toNodeId: string; 
+  toNodeId: string;
 }
 
 interface NodeNetworkMapProps {
@@ -60,35 +60,96 @@ export default function NodeNetworkMap({
     };
   }, []);
 
+  // 注册世界地图 GeoJSON
   useEffect(() => {
+    try {
+      if (worldGeoJson) {
+        echarts.registerMap("world", worldGeoJson as never);
+      }
+    } catch (error) {
+      console.error("Failed to register world GeoJSON:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    // 如果没有节点数据，或者虽然有连接但还没加载完成（避免首次渲染时 connections 为空数组）
     if (!chartInstance.current || nodes.length === 0) {
       setMapLoaded(true);
       return;
     }
 
-    // 获取CSS变量值
-    const primaryColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--text-primary")
-      .trim();
-    const purpleColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--purple")
-      .trim();
-    const borderColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--border-default")
-      .trim();
+    // 计算每个节点的 channel 数量
+    const nodeChannelCount = new Map<string, number>();
+    connections.forEach(conn => {
+      nodeChannelCount.set(
+        conn.fromNodeId,
+        (nodeChannelCount.get(conn.fromNodeId) || 0) + 1
+      );
+      nodeChannelCount.set(
+        conn.toNodeId,
+        (nodeChannelCount.get(conn.toNodeId) || 0) + 1
+      );
+    });
+    // 根据 channel 数量计算节点颜色的辅助函数
+    const getNodeColor = (channelCount: number): string => {
+      if (channelCount >= 40) return "#2F1C96"; // 40+
+      if (channelCount >= 30) return "#5034C4"; // 30-39
+      if (channelCount >= 20) return "#7459E6"; // 20-29
+      if (channelCount >= 10) return "#B8A8F4"; // 10-19
+      return "#E6E2FB"; // 0-9
+    };
 
     // 转换节点数据为散点图数据
-    const nodeScatterData = nodes.map(node => ({
-      name: `${node.nodeName || node.nodeId.slice(0, 8)}`,
-      value: [node.longitude, node.latitude],
-      nodeId: node.nodeId,
-      nodeName: node.nodeName,
-      city: node.city,
-      country: node.country,
-      capacity: node.capacity,
-      isCurrentNode: node.nodeId === currentNodeId,
-    }));
+    // 先映射所有节点数据
+    const allNodeData = nodes
+      .map(node => {
+        const channelCount = nodeChannelCount.get(node.nodeId) || 0;
+        console.log(
+          nodeChannelCount.get(
+            "0x0327541071dbe2b22b532cea104a781fa9cc61bf8e47d5216e48c8738e3f969351"
+          ),
+          getNodeColor(
+            nodeChannelCount.get(
+              "0x0327541071dbe2b22b532cea104a781fa9cc61bf8e47d5216e48c8738e3f969351"
+            ) || 0
+          )
+        );
 
+        return {
+          name: `${node.nodeName || node.nodeId.slice(0, 8)}`,
+          value: [node.longitude, node.latitude],
+          nodeId: node.nodeId,
+          nodeName: node.nodeName,
+          city: node.city,
+          country: node.country,
+          capacity: node.capacity,
+          channelCount,
+          nodeColor: getNodeColor(channelCount),
+          isCurrentNode: node.nodeId === currentNodeId,
+        };
+      })
+      .filter(item => item.channelCount > 0);
+
+    // 按经纬度分组，保留 channelCount 最多的节点
+    const coordMap = new Map<string, (typeof allNodeData)[0]>();
+    allNodeData.forEach(item => {
+      const key = `${item.value[0]},${item.value[1]}`;
+      const existing = coordMap.get(key);
+      // 如果当前坐标没有节点，或者当前节点的 channelCount 更多，则保留当前节点
+      if (!existing || item.channelCount > existing.channelCount) {
+        coordMap.set(key, item);
+      }
+    });
+
+    const nodeScatterData = Array.from(coordMap.values());
+    console.log(
+      "[NodeNetworkMap] 去重后节点数量：",
+      nodeScatterData.length,
+      "原始数量：",
+      allNodeData.length
+    );
+
+    console.log(nodeScatterData, "nodeScatterData");
     // 创建节点ID到坐标的映射
     const nodeMap = new Map(
       nodes.map(node => [node.nodeId, [node.longitude, node.latitude]])
@@ -102,6 +163,8 @@ export default function NodeNetworkMap({
         count: number;
         fromNodeId: string;
         toNodeId: string;
+        node1Name: string;
+        node2Name: string;
       }
     >();
 
@@ -110,6 +173,8 @@ export default function NodeNetworkMap({
 
       const coords1 = nodeMap.get(conn.fromNodeId)!;
       const coords2 = nodeMap.get(conn.toNodeId)!;
+      const node1 = nodes.find(n => n.nodeId === conn.fromNodeId);
+      const node2 = nodes.find(n => n.nodeId === conn.toNodeId);
 
       // 创建一致的节点对key（排序确保相同节点对有相同key）
       const nodePairKey = [conn.fromNodeId, conn.toNodeId].sort().join("|");
@@ -125,6 +190,8 @@ export default function NodeNetworkMap({
           count: 1,
           fromNodeId: conn.fromNodeId,
           toNodeId: conn.toNodeId,
+          node1Name: node1?.nodeName || conn.fromNodeId.slice(0, 8),
+          node2Name: node2?.nodeName || conn.toNodeId.slice(0, 8),
         });
       }
     });
@@ -132,17 +199,17 @@ export default function NodeNetworkMap({
     const linesData = Array.from(connectionGroups.values());
 
     // 生成连线系列和图例数据（根据连接数量分组）
-    const baseColor = "#7c3aed"; // 紫蓝色连线
+    const baseColor = "#59ABE6"; // 蓝色连线
     const connectionRanges = [
-      { min: 1, max: 1, width: 1, opacity: 0.4, label: "1 Connection" },
-      { min: 2, max: 2, width: 1.5, opacity: 0.5, label: "2 Connections" },
-      { min: 3, max: 3, width: 2, opacity: 0.6, label: "3 Connections" },
+      { min: 1, max: 1, width: 1, opacity: 1, label: "1 Channel" },
+      { min: 2, max: 2, width: 1, opacity: 1, label: "2 Channels" },
+      { min: 3, max: 3, width: 1, opacity: 1, label: "3 Channels" },
       {
         min: 4,
         max: Infinity,
-        width: 2.5,
-        opacity: 0.7,
-        label: "4+ Connections",
+        width: 1,
+        opacity: 1,
+        label: "4+ Channels",
       },
     ];
 
@@ -163,6 +230,9 @@ export default function NodeNetworkMap({
           data: filteredData.map(line => ({
             coords: line.coords,
             value: line.count,
+            channelCount: line.count,
+            node1Name: line.node1Name,
+            node2Name: line.node2Name,
           })),
           lineStyle: {
             color: baseColor,
@@ -180,53 +250,92 @@ export default function NodeNetworkMap({
 
     const option: echarts.EChartsOption = {
       backgroundColor: "transparent",
+      title: title
+        ? {
+            text: title,
+            left: "center",
+            textStyle: {
+              color: "var(--foreground)",
+              fontSize: 16,
+              fontWeight: "normal",
+            },
+          }
+        : undefined,
+      geo: {
+        map: "world",
+        roam: true,
+        zoom: 1.2,
+        center: [0, 20],
+        itemStyle: {
+          borderColor: "#D9D9D9",
+          borderWidth: 1,
+          areaColor: "#FFFFFF",
+        },
+        emphasis: {
+          itemStyle: {
+            areaColor: "#D5CDF7",
+            borderColor: "#88899E",
+          },
+          label: {
+            show: false,
+          },
+        },
+        select: {
+          itemStyle: {
+            areaColor: "#D5CDF7",
+            borderColor: "#88899E",
+          },
+        },
+        tooltip: {
+          show: false,
+        },
+        label: {
+          show: false,
+        },
+      },
       visualMap: {
         min: 0,
         max: 50,
         left: "left",
         top: "center",
-        text: ["High", "Low"],
+        text: ["50+", "0"],
         textStyle: {
-          color: primaryColor,
+          color: "var(--text-primary)",
           fontSize: 10,
         },
-        inRange: {
-          color: ["#ddd6fe", "#a78bfa", "#7c3aed", "#5b21b6"],
-        },
-        calculable: false,
+        pieces: [
+          { min: 0, max: 10, color: "#E6E2FB" },
+          { min: 10, max: 20, color: "#B8A8F4" },
+          { min: 20, max: 30, color: "#7459E6" },
+          { min: 30, max: 40, color: "#5034C4" },
+          { min: 40, max: 50, color: "#2F1C96" },
+          { min: 50, color: "#2F1C96" },
+        ],
         show: true,
         orient: "vertical",
         itemWidth: 20,
-        itemHeight: 140,
+        itemHeight: 20,
+        seriesIndex: [], // 不应用到任何系列，仅作为图例显示
       },
-      legend: {
-        data: legendData,
-        bottom: 10,
-        textStyle: {
-          color: primaryColor,
-          fontSize: 12,
-        },
-        itemWidth: 30,
-        itemHeight: 3,
-        itemGap: 15,
-      },
+
       tooltip: {
         trigger: "item",
-        backgroundColor: "var(--surface-popover)",
-        borderColor: borderColor,
+        backgroundColor: "var(--background)",
+        borderColor: "var(--border)",
         borderWidth: 1,
         borderRadius: 8,
         padding: 12,
         textStyle: {
-          color: primaryColor,
+          color: "var(--foreground)",
         },
         confine: true,
         formatter: (params: unknown) => {
           const param = params as {
             componentType: string;
             seriesType: string;
+            seriesName?: string;
             name: string;
-            value: [number, number] | number;
+            value: [number, number, number] | number;
             data?: {
               nodeId?: string;
               nodeName?: string;
@@ -234,81 +343,86 @@ export default function NodeNetworkMap({
               country?: string;
               capacity?: number;
               isCurrentNode?: boolean;
+              channelCount?: number;
+              node1Name?: string;
+              node2Name?: string;
             };
           };
 
+          // 连线 tooltip (先判断连线，因为连线数据有 node1Name 和 node2Name)
+          if (
+            param.seriesType === "lines" &&
+            param.data?.node1Name &&
+            param.data?.node2Name
+          ) {
+            return `
+              <div class="p-2">
+                <div class="font-semibold text-primary mb-1">Channel Connection</div>
+                <div class="text-sm text-muted-foreground mb-1">${param.data.node1Name} ↔ ${param.data.node2Name}</div>
+                <div class="text-sm">
+                  <span class="text-foreground">Channels:</span> 
+                  <span class="font-medium text-primary">${param.data.channelCount}</span>
+                </div>
+              </div>
+            `;
+          }
+
+          // 节点 tooltip
           if (param.seriesType === "scatter" && param.data) {
             const location = [param.data.city, param.data.country]
               .filter(Boolean)
               .join(", ");
-            let result = `<div style="font-weight:600;margin-bottom:4px;">${param.data.nodeName || param.data.nodeId?.slice(0, 12)}</div>`;
-            if (location) {
-              result += `<div style="margin-bottom:2px;">📍 ${location}</div>`;
-            }
-            if (param.data.capacity) {
-              result += `<div>Capacity: ${param.data.capacity.toLocaleString()} CKB</div>`;
-            }
-            if (param.data.isCurrentNode) {
-              result += `<div style="color:${purpleColor};margin-top:4px;">● Current Node</div>`;
-            }
-            return result;
+            // 重新从 nodeChannelCount Map 中获取 channelCount
+            const channelCount =
+              nodeChannelCount.get(param.data.nodeId || "") || 0;
+            return `
+              <div class="p-2">
+                <div class="font-semibold text-primary mb-1">${param.data.nodeName || param.data.nodeId?.slice(0, 12) || param.name}</div>
+                ${location ? `<div class="text-sm text-muted-foreground mb-1">📍 ${location}</div>` : ""}
+                <div class="text-sm"><span class="text-foreground">Channels:</span> <span class="font-medium text-primary">${channelCount}</span></div>
+                ${param.data.capacity ? `<div class="text-sm"><span class="text-foreground">Capacity:</span> <span class="font-medium text-primary">${param.data.capacity.toLocaleString()} CKB</span></div>` : ""}
+                ${param.data.isCurrentNode ? `<div class="text-sm text-purple mt-1">● Current Node</div>` : ""}
+              </div>
+            `;
           }
+
           return param.name;
         },
       },
-      xAxis: {
-        type: "value",
-        min: -180,
-        max: 180,
-        show: false,
-      },
-      yAxis: {
-        type: "value",
-        min: -90,
-        max: 90,
-        show: false,
-      },
+
       series: [
         // 连线系列
-        ...(lineSeries.map(series => ({
-          ...series,
-          coordinateSystem: "cartesian2d" as const,
-        })) as echarts.SeriesOption[]),
+        ...(lineSeries as echarts.SeriesOption[]),
         // 节点散点
         {
           name: `Nodes (${nodeScatterData.length})`,
           type: "scatter",
-          coordinateSystem: "cartesian2d",
+          coordinateSystem: "geo",
           z: 2,
           data: nodeScatterData,
-          symbolSize: (val: unknown, params: unknown) => {
-            const p = params as { data?: { isCurrentNode?: boolean } };
-            return p.data?.isCurrentNode ? 12 : 8;
-          },
+          symbolSize: 16,
           itemStyle: {
+            borderColor: "#FFFFFF",
+            borderWidth: 1,
+            // color: '#E6E2FB'
             color: (params: unknown) => {
-              const p = params as { data?: { isCurrentNode?: boolean } };
-              if (p.data?.isCurrentNode) {
-                return "#7c3aed"; // 当前节点深紫色
-              }
-              return "#6366f1"; // 蓝紫色节点
+              const p = params as { data?: { nodeColor?: string } };
+              return p.data?.nodeColor || "#E6E2FB";
             },
-            shadowBlur: 4,
-            shadowColor: "rgba(99, 102, 241, 0.4)",
           },
           emphasis: {
             itemStyle: {
-              color: "#7c3aed",
-              shadowBlur: 12,
-              shadowColor: "rgba(124, 58, 237, 0.6)",
+              borderColor: "#FFFFFF",
+              borderWidth: 2,
+              shadowBlur: 8,
+              shadowColor: "rgba(47, 28, 150, 0.4)",
             },
-            scale: 1.4,
+            scale: 1.2,
           },
-          progressive: 50,
-          progressiveThreshold: 300,
-          large: true,
-          largeThreshold: 100,
           silent: false,
+          tooltip: {
+            show: true,
+          },
         },
       ],
     };
@@ -319,21 +433,14 @@ export default function NodeNetworkMap({
 
   return (
     <div style={{ position: "relative" }} className={className}>
-      {/* SVG 蜂窝地图背景 */}
-      <div className="absolute inset-0" style={{ zIndex: 0 }}>
-        <Image
-          src="/map.svg"
-          alt="World Map with Hexagonal Pattern"
-          fill
-          style={{ objectFit: "contain", opacity: 0.95 }}
-          priority
-        />
-      </div>
-
-      {/* ECharts 图层（节点和连线） */}
+      {/* ECharts 图层（地图、节点和连线） */}
       <div
         ref={chartRef}
-        style={{ height, position: "relative", zIndex: 1 }}
+        style={{
+          height,
+          position: "relative",
+          filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.01))",
+        }}
       />
 
       {!mapLoaded && (

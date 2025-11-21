@@ -6,12 +6,15 @@ import {
   GlassCardContainer,
   EasyTable,
 } from "@/shared/components/ui";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNetwork } from "@/features/networks/context/NetworkContext";
+import { queryKeys, queryClient } from "@/features/dashboard/hooks/useDashboard";
+import { formatCompactNumber } from "@/lib/utils";
 
 const TIME_RANGE_OPTIONS: SelectOption[] = [
-  { value: "weekly", label: "Weekly" },
+  { value: "hourly", label: "Hourly" },
   { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
 ];
 
 // Mock data for TimeSeriesChart
@@ -58,22 +61,81 @@ const MOCK_TIME_SERIES_DATA2 = [
 ];
 
 export const DashboardNew = () => {
-  const [timeRange, setTimeRange] = useState("weekly");
+  const [timeRange, setTimeRange] = useState<"hourly" | "monthly">("hourly");
+  const [lastUpdated, setLastUpdated] = useState<string>("");
+  const { apiClient, currentNetwork } = useNetwork();
 
-  const handleRefresh = () => {
-    // TODO: 实现刷新逻辑
-    console.log("Refreshing data...");
+  const { data: kpi, dataUpdatedAt } = useQuery({
+    queryKey: [...queryKeys.kpis, currentNetwork, timeRange],
+    queryFn: () => apiClient.fetchKpiDataByTimeRange(timeRange),
+    refetchInterval: 30000,
+  });
+
+  const { data: timeSeriesData, dataUpdatedAt: timeSeriesUpdatedAt } = useQuery({
+    queryKey: [...queryKeys.timeSeries, currentNetwork, timeRange],
+    queryFn: () => apiClient.fetchTimeSeriesDataByTimeRange(timeRange),
+    refetchInterval: 30000,
+  });
+
+  const { data: topNodes } = useQuery({
+    queryKey: [...queryKeys.nodes, "ranking", currentNetwork, timeRange],
+    queryFn: () => {
+      if (timeRange === "hourly") {
+        return apiClient.fetchTopNodesByCapacity(3, "hourly");
+      } else {
+        // monthly: 取最近30天的数据
+        const now = new Date();
+        const end = now.toISOString().split('T')[0];
+        const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0];
+        return apiClient.fetchTopNodesByCapacity(3, "monthly", start, end);
+      }
+    },
+    refetchInterval: 30000,
+  });
+
+  // 更新 lastUpdated 时间（取所有查询中最新的更新时间）
+  useEffect(() => {
+    const latestUpdate = Math.max(dataUpdatedAt || 0, timeSeriesUpdatedAt || 0);
+    if (latestUpdate) {
+      const date = new Date(latestUpdate);
+      const formattedTime = date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      setLastUpdated(`Last updated: ${formattedTime}`);
+    }
+  }, [dataUpdatedAt, timeSeriesUpdatedAt]);
+
+  const handleRefresh = async () => {
+    // 刷新所有当前页面的查询
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.kpis, currentNetwork, timeRange],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.timeSeries, currentNetwork, timeRange],
+      }),
+    ]);
+  };
+
+  const handleTimeRangeChange = (value: string) => {
+    setTimeRange(value as "hourly" | "monthly");
   };
 
   return (
     <div className="flex flex-col gap-5">
       <SectionHeader
         title="Overview"
-        lastUpdated="Last updated: Oct 23, 12:35"
+        lastUpdated={lastUpdated}
         onRefresh={handleRefresh}
         selectOptions={TIME_RANGE_OPTIONS}
         selectValue={timeRange}
-        onSelectChange={setTimeRange}
+        onSelectChange={handleTimeRangeChange}
       />
 
       {/* 桌面端左右两大块布局 - 7:3 比例 */}
@@ -84,7 +146,7 @@ export const DashboardNew = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <KpiCard
               label="TOTAL CAPACITY"
-              value="4820000"
+              value={String(kpi?.totalCapacity ?? 0)}
               unit="CKB"
               changePercent={12}
               trending="up"
@@ -92,8 +154,7 @@ export const DashboardNew = () => {
             />
             <KpiCard
               label="TOTAL CHANNELS"
-              value="2000"
-              unit="CKB"
+              value={String(kpi?.totalChannels ?? 0)}
               changePercent={12}
               trending="down"
               changeLabel="from last week"
@@ -103,10 +164,11 @@ export const DashboardNew = () => {
 
           <GlassCardContainer>
             <TimeSeriesChart
-              data={MOCK_TIME_SERIES_DATA}
+              data={timeSeriesData ? [timeSeriesData.capacity, timeSeriesData.channels] : MOCK_TIME_SERIES_DATA}
               height="321px"
               className="w-full"
               colors={["#7459e6", "#fab83d"]}
+              timeRange={timeRange}
             />
           </GlassCardContainer>
           
@@ -114,7 +176,7 @@ export const DashboardNew = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <KpiCard
               label="MIN CAPACITY"
-              value="12.0"
+              value={String(kpi?.minChannelCapacity ?? 0)}
               unit="CKB"
               changePercent={12}
               trending="up"
@@ -122,7 +184,7 @@ export const DashboardNew = () => {
             />
             <KpiCard
               label="MAX CAPACITY"
-              value="249200"
+              value={String(kpi?.maxChannelCapacity ?? 0)}
               unit="CKB"
               changePercent={12}
               trending="up"
@@ -130,7 +192,7 @@ export const DashboardNew = () => {
             />
             <KpiCard
               label="AVG CAPACITY"
-              value="27100"
+              value={String(kpi?.averageChannelCapacity ?? 0)}
               unit="CKB"
               changePercent={12}
               trending="up"
@@ -138,7 +200,7 @@ export const DashboardNew = () => {
             />
             <KpiCard
               label="MEDIAN CAPACITY"
-              value="12000"
+              value={String(kpi?.medianChannelCapacity ?? 0)}
               unit="CKB"
               changePercent={12}
               trending="up"
@@ -151,29 +213,26 @@ export const DashboardNew = () => {
         <div className="flex flex-col gap-4 lg:w-[30%]">
           <KpiCard
             label="TOTAL ACTIVE NODES"
-            value="300"
+            value={String(kpi?.totalNodes ?? 0)}
             changePercent={5.5}
             trending="down"
-            onViewDetails={() => {}}
             changeLabel="from last week"
+            onViewDetails={() => {}}
           />
           <GlassCardContainer>
             <TimeSeriesChart
-              data={MOCK_TIME_SERIES_DATA2}
+              data={timeSeriesData ? [timeSeriesData.nodes] : MOCK_TIME_SERIES_DATA2}
               height="321px"
               className="w-full"
               colors={["#59ABE6"]}
+              timeRange={timeRange}
             />
           </GlassCardContainer>
           <EasyTable
             title="NODES RANKING"
             actionText="View All"
             onActionClick={() => {}}
-            data={[
-              { id: "1", node_id: "node-01", capacity: "1000000" },
-              { id: "2", node_id: "node-02", capacity: "500000" },
-              { id: "3", node_id: "node-03", capacity: "900000" },
-            ]}
+            data={topNodes || []}
             columns={[
               {
                 key: "node_id",
@@ -184,10 +243,7 @@ export const DashboardNew = () => {
                 label: "Capacity (CKB)",
                 format: value => {
                   const num = Number(value);
-                  return new Intl.NumberFormat("en-US", {
-                    notation: "compact",
-                    maximumFractionDigits: 1,
-                  }).format(num);
+                  return formatCompactNumber(num, 1);
                 },
               },
             ]}

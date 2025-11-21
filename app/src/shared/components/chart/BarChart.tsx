@@ -75,10 +75,6 @@ export default function BarChart({
       .getPropertyValue('--line-120')
       .trim();
 
-    // 根据屏幕宽度设置 tooltip 宽度
-    const isMobile = window.innerWidth < 768;
-    const tooltipWidth = isMobile ? 154 : 164;
-
     // 数字格式化函数
     const formatNumber = (value: number) => {
       if (value === 0) return '0';
@@ -111,7 +107,7 @@ export default function BarChart({
         borderRadius: 8,
         padding: 12,
         confine: true,
-        extraCssText: `width: ${tooltipWidth}px; box-sizing: border-box; box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.08);`,
+        extraCssText: `box-sizing: border-box; box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.08); white-space: nowrap;`,
         textStyle: {
           color: primaryColor,
         },

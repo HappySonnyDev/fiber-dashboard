@@ -130,12 +130,12 @@ export const Table = <T extends Record<string, unknown>>({
                 {columns.map((column) => (
                   <div
                     key={column.key}
-                    className={`h-12 px-3 py-2.5 flex items-center gap-2.5 ${
+                    className={`h-12 px-3 py-2.5 flex items-center gap-2.5 min-w-0 ${
                       column.width || 'flex-1'
                     }`}
                   >
                     <div
-                      className={`text-sm leading-5 ${
+                      className={`text-sm leading-5 w-full ${
                         column.className || 'text-primary font-normal'
                       }`}
                     >
