@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   SectionHeader,
@@ -13,11 +13,11 @@ import {
 } from "@/shared/components/ui";
 import BarChart from "@/shared/components/chart/BarChart";
 import PieChart from "@/shared/components/chart/PieChart";
-import { useChannelsByState } from "@/features/dashboard/hooks/useChannels";
+import { useChannelsByState } from "@/features/channels/hooks/useChannels";
 import { ChannelState, BasicChannelInfo } from "@/lib/types";
 import { u64LittleEndianToDecimal, hexToDecimal } from "@/lib/utils";
 import { useNetwork } from "@/features/networks/context/NetworkContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // 通道数据类型
 interface ChannelData extends Record<string, unknown> {
@@ -55,6 +55,7 @@ const formatCapacityRange = (min: number, max: number) => {
 
 export const Channels = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1); // 1-based for display
   const [selectedState, setSelectedState] = useState<ChannelState>("open");
   const [sortKey, setSortKey] = useState<string>("transactions");
@@ -63,7 +64,7 @@ export const Channels = () => {
   const { apiClient, currentNetwork } = useNetwork();
 
   // 获取全量通道数据用于容量分布统计
-  const { data: allChannelsData } = useQuery({
+  const { data: allChannelsData, dataUpdatedAt: allChannelsUpdatedAt } = useQuery({
     queryKey: ["all-channels-for-capacity", currentNetwork],
     queryFn: () => apiClient.fetchAllActiveChannels(),
     refetchInterval: 300000, // 5分钟刷新
@@ -76,7 +77,7 @@ export const Channels = () => {
   }, [allChannelsData]);
 
   // Fetch all data for selected state (page 0 gets all data)
-  const { data: channelsData, isLoading, refetch } = useChannelsByState(
+  const { data: channelsData, isLoading, refetch, dataUpdatedAt: channelsDataUpdatedAt } = useChannelsByState(
     selectedState,
     0
   );
@@ -223,6 +224,22 @@ export const Channels = () => {
   }, [selectedState]);
 
   // 列定义
+  // 计算最后更新时间
+  const lastUpdated = useMemo(() => {
+    const latestUpdateTime = Math.max(allChannelsUpdatedAt || 0, channelsDataUpdatedAt || 0);
+    if (latestUpdateTime === 0) return "";
+    
+    const date = new Date(latestUpdateTime);
+    const formattedTime = date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    return `Last updated: ${formattedTime}`;
+  }, [allChannelsUpdatedAt, channelsDataUpdatedAt]);
+
   const columns: ColumnDef<ChannelData>[] = [
     {
       key: "channelId",
@@ -265,8 +282,12 @@ export const Channels = () => {
       sortable: true,
     },
   ];
-  const handleRefresh = () => {
-    refetch();
+  
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["all-channels-for-capacity", currentNetwork] }),
+      refetch(),
+    ]);
   };
 
   const handleSort = (key: string, state: SortState) => {
@@ -287,7 +308,7 @@ export const Channels = () => {
     <div className="flex flex-col gap-5">
       <SectionHeader
         title="Channel Health & Activities"
-        lastUpdated="Last updated: Oct 23, 12:35"
+        lastUpdated={lastUpdated}
         onRefresh={handleRefresh}
       />
 
@@ -326,7 +347,7 @@ export const Channels = () => {
 
       <SectionHeader
         title="Channels by Status"
-        lastUpdated={new Date().toLocaleString()}
+        lastUpdated={lastUpdated}
         onRefresh={handleRefresh}
       />
       <div className="flex gap-4">

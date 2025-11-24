@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import * as echarts from "echarts";
 import worldGeoJson from "@/features/dashboard/maps/world.json";
 import { ChannelsLegend } from "./ChannelsLegend";
@@ -43,6 +44,7 @@ export default function NodeNetworkMap({
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showChannels, setShowChannels] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -114,6 +116,21 @@ export default function NodeNetworkMap({
     };
 
     chartInstance.current.on('georoam', handleGeoRoam);
+
+    // 保存当前的缩放和中心位置（如果已存在）
+    let currentZoom: number | undefined;
+    let currentCenter: [number, number] | undefined;
+    const currentOption = chartInstance.current.getOption() as echarts.EChartsOption;
+    const currentGeoOptions = currentOption?.geo as echarts.GeoComponentOption[] | undefined;
+    if (currentGeoOptions && currentGeoOptions.length >= 2) {
+      const mainGeo = currentGeoOptions[1];
+      if (mainGeo?.zoom) {
+        currentZoom = mainGeo.zoom as number;
+      }
+      if (mainGeo?.center) {
+        currentCenter = mainGeo.center as [number, number];
+      }
+    }
 
     // 计算每个节点的 channel 数量
     const nodeChannelCount = new Map<string, number>();
@@ -287,6 +304,13 @@ export default function NodeNetworkMap({
       }
     });
 
+    // 使用保存的缩放和中心位置，如果不存在则使用默认值
+    const zoom = currentZoom ?? 1.2;
+    const mainCenter = currentCenter ?? [0, 20];
+    const shadowCenter: [number, number] = currentCenter 
+      ? [currentCenter[0], currentCenter[1] + 5] 
+      : [0, 25];
+
     const option: echarts.EChartsOption = {
       backgroundColor: "transparent",
       title: title
@@ -305,8 +329,8 @@ export default function NodeNetworkMap({
         {
           map: "world",
           roam: true,
-          zoom: 1.2,
-          center: [0, 25], // 向下偏移以创建阴影效果
+          zoom: zoom,
+          center: shadowCenter, // 向下偏移以创建阴影效果
           zlevel: 0,
           silent: true, // 禁用交互
           itemStyle: {
@@ -331,8 +355,8 @@ export default function NodeNetworkMap({
         {
           map: "world",
           roam: true,
-          zoom: 1.2,
-          center: [0, 20],
+          zoom: zoom,
+          center: mainCenter,
           zlevel: 1,
           itemStyle: {
             borderColor: "#D9D9D9",
@@ -516,13 +540,33 @@ export default function NodeNetworkMap({
     });
     setMapLoaded(true);
 
+    // 添加点击事件处理
+    const handleNodeClick = (params: unknown) => {
+      const param = params as {
+        componentType: string;
+        seriesType: string;
+        data?: {
+          nodeId?: string;
+        };
+      };
+
+      // 只处理散点图的点击事件
+      if (param.seriesType === "scatter" && param.data?.nodeId) {
+        const nodeId = param.data.nodeId;
+        router.push(`/node/${encodeURIComponent(nodeId)}`);
+      }
+    };
+
+    chartInstance.current.on('click', handleNodeClick);
+
     // 清理事件监听
     return () => {
       if (chartInstance.current) {
         chartInstance.current.off('georoam');
+        chartInstance.current.off('click', handleNodeClick);
       }
     };
-  }, [nodes, connections, currentNodeId, title, showChannels]);
+  }, [nodes, connections, currentNodeId, title, showChannels, router]);
 
   // 缩放控制函数
   const handleZoomIn = () => {

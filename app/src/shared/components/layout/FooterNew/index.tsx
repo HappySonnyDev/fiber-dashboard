@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import './FooterNew.css';
+import './index.css';
 
 const footerLinks = {
   social: [

@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNetwork } from "@/features/networks/context/NetworkContext";
 import { queryKeys, queryClient } from "@/features/dashboard/hooks/useDashboard";
 import { formatCompactNumber } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const TIME_RANGE_OPTIONS: SelectOption[] = [
   { value: "hourly", label: "Hourly" },
@@ -64,6 +65,7 @@ export const DashboardNew = () => {
   const [timeRange, setTimeRange] = useState<"hourly" | "monthly">("hourly");
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const { apiClient, currentNetwork } = useNetwork();
+  const router = useRouter();
 
   const { data: kpi, dataUpdatedAt } = useQuery({
     queryKey: [...queryKeys.kpis, currentNetwork, timeRange],
@@ -158,7 +160,7 @@ export const DashboardNew = () => {
               changePercent={12}
               trending="down"
               changeLabel="from last week"
-              onViewDetails={() => {}}
+              onViewDetails={() => router.push('/channels')}
             />
           </div>
 
@@ -217,7 +219,7 @@ export const DashboardNew = () => {
             changePercent={5.5}
             trending="down"
             changeLabel="from last week"
-            onViewDetails={() => {}}
+            onViewDetails={() => router.push('/nodes')}
           />
           <GlassCardContainer>
             <TimeSeriesChart
@@ -231,12 +233,20 @@ export const DashboardNew = () => {
           <EasyTable
             title="NODES RANKING"
             actionText="View All"
-            onActionClick={() => {}}
+            onActionClick={() => router.push('/nodes')}
             data={topNodes || []}
             columns={[
               {
                 key: "node_id",
                 label: "Node ID",
+                format: (value, row) => (
+                  <button
+                    onClick={() => router.push(`/node/${row.node_id}`)}
+                    className="text-primary hover:underline cursor-pointer text-left truncate w-full"
+                  >
+                    {String(value)}
+                  </button>
+                ),
               },
               {
                 key: "capacity",

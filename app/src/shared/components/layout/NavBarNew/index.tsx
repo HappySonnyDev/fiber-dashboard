@@ -1,6 +1,6 @@
 "use client";
 
-import "./NavBarNew.css";
+import "./index.css";
 import Tabs, { TabItem } from "@/shared/components/ui/NavTabs";
 import {
   CustomSelect,

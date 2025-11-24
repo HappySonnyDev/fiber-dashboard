@@ -1,7 +1,7 @@
 import { DetailCard, PageHeader, KpiCard, SectionHeader, Table, Pagination, GlassCardContainer, StatusBadge } from "@/shared/components/ui";
 import type { ColumnDef, SortState } from "@/shared/components/ui";
 import { useState, useMemo, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useNetwork } from "@/features/networks/context/NetworkContext";
 import { RustChannelInfo, RustNodeInfo } from "@/lib/types";
@@ -20,6 +20,7 @@ export const NodeDetail = () => {
   const params = useParams();
   const nodeId = decodeURIComponent(params.nodeId as string);
   const { apiClient, currentNetwork } = useNetwork();
+  const router = useRouter();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [sortKey, setSortKey] = useState<string>('capacity');
@@ -152,6 +153,14 @@ export const NodeDetail = () => {
       key: "channelId",
       label: "Channel ID",
       width: "flex-1",
+      render: (value) => (
+        <button
+          onClick={() => router.push(`/channel/${value}`)}
+          className="text-primary hover:underline cursor-pointer text-left truncate w-full"
+        >
+          {value as string}
+        </button>
+      ),
     },
     {
       key: "status",

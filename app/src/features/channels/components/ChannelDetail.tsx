@@ -206,7 +206,7 @@ export default function ChannelDetailPage() {
                 </div>
                 <button
                   onClick={() => router.push(`/node/${encodeURIComponent(node1Info.node_id)}`)}
-                  className="type-button1 text-purple cursor-pointer"
+                  className="type-button1 text-purple cursor-pointer hover:underline"
                 >
                   View details
                 </button>
@@ -232,7 +232,7 @@ export default function ChannelDetailPage() {
                 </div>
                 <button
                   onClick={() => router.push(`/node/${encodeURIComponent(node2Info.node_id)}`)}
-                  className="type-button1 text-purple cursor-pointer"
+                  className="type-button1 text-purple cursor-pointer hover:underline"
                 >
                   View details
                 </button>

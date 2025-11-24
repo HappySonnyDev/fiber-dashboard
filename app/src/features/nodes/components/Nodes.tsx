@@ -314,7 +314,7 @@ export const Nodes = () => {
         return (
           <span
             className="text-primary cursor-pointer hover:underline font-mono text-xs"
-            onClick={() => router.push(`/nodes/${row.nodeId}`)}
+            onClick={() => router.push(`/node/${row.nodeId}`)}
             title={value as string}
           >
             {shortId}
