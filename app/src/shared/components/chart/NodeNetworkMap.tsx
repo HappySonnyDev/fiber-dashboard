@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import * as echarts from "echarts";
 import worldGeoJson from "@/features/dashboard/maps/world.json";
+import { ChannelsLegend } from "./ChannelsLegend";
+import { ChannelsToggle } from "./ChannelsToggle";
+import { MapZoomControls } from "./MapZoomControls";
 
 export interface NodeMapData {
   nodeId: string;
@@ -39,6 +42,7 @@ export default function NodeNetworkMap({
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [showChannels, setShowChannels] = useState(true);
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -77,6 +81,39 @@ export default function NodeNetworkMap({
       setMapLoaded(true);
       return;
     }
+
+    // 监听地图的拖动和缩放事件，同步两个地图层
+    const handleGeoRoam = () => {
+      if (!chartInstance.current) return;
+      
+      // 使用 setTimeout 确保在 ECharts 更新后再同步
+      setTimeout(() => {
+        if (!chartInstance.current) return;
+        const updatedOption = chartInstance.current.getOption() as echarts.EChartsOption;
+        const updatedGeoOptions = updatedOption.geo as echarts.GeoComponentOption[];
+        
+        if (updatedGeoOptions && updatedGeoOptions.length >= 2) {
+          const updatedMainGeo = updatedGeoOptions[1];
+          
+          if (updatedMainGeo.center && updatedMainGeo.zoom) {
+            const [centerX, centerY] = updatedMainGeo.center as [number, number];
+            
+            // 同步阴影层，保持偏移
+            chartInstance.current.setOption({
+              geo: [
+                {
+                  center: [centerX, centerY + 5], // 阴影层保持偏移（主地图20，阴影25，差值为5）
+                  zoom: updatedMainGeo.zoom,
+                },
+                null, // 主地图层不变
+              ],
+            }, { lazyUpdate: true });
+          }
+        }
+      }, 0);
+    };
+
+    chartInstance.current.on('georoam', handleGeoRoam);
 
     // 计算每个节点的 channel 数量
     const nodeChannelCount = new Map<string, number>();
@@ -227,6 +264,8 @@ export default function NodeNetworkMap({
           name: seriesName,
           type: "lines",
           coordinateSystem: "geo",
+          geoIndex: 1, // 使用主地图层
+          zlevel: 2, // 设置在地图层之上
           data: filteredData.map(line => ({
             coords: line.coords,
             value: line.count,
@@ -261,74 +300,105 @@ export default function NodeNetworkMap({
             },
           }
         : undefined,
-      geo: {
-        map: "world",
-        roam: true,
-        zoom: 1.2,
-        center: [0, 20],
-        itemStyle: {
-          borderColor: "#D9D9D9",
-          borderWidth: 1,
-          areaColor: "#FFFFFF",
-        },
-        emphasis: {
+      geo: [
+        // 阴影地图层（底层）
+        {
+          map: "world",
+          roam: true,
+          zoom: 1.2,
+          center: [0, 25], // 向下偏移以创建阴影效果
+          zlevel: 0,
+          silent: true, // 禁用交互
           itemStyle: {
-            areaColor: "#D5CDF7",
-            borderColor: "#88899E",
+            borderColor: "transparent",
+            borderWidth: 0,
+            areaColor: "rgba(0, 0, 0, 0.04)", // 增加不透明度使阴影更明显
+          },
+          emphasis: {
+            disabled: true,
+          },
+          select: {
+            disabled: true,
+          },
+          tooltip: {
+            show: false,
           },
           label: {
             show: false,
           },
         },
-        select: {
+        // 主地图层（上层）
+        {
+          map: "world",
+          roam: true,
+          zoom: 1.2,
+          center: [0, 20],
+          zlevel: 1,
           itemStyle: {
-            areaColor: "#D5CDF7",
-            borderColor: "#88899E",
+            borderColor: "#D9D9D9",
+            borderWidth: 1,
+            areaColor: "#FFFFFF",
+          },
+          emphasis: {
+            itemStyle: {
+              areaColor: "#D5CDF7",
+              borderColor: "#88899E",
+            },
+            label: {
+              show: false,
+            },
+          },
+          select: {
+            itemStyle: {
+              areaColor: "#D5CDF7",
+              borderColor: "#88899E",
+            },
+          },
+          tooltip: {
+            show: false,
+          },
+          label: {
+            show: false,
           },
         },
-        tooltip: {
-          show: false,
-        },
-        label: {
-          show: false,
-        },
-      },
-      visualMap: {
-        min: 0,
-        max: 50,
-        left: "left",
-        top: "center",
-        text: ["50+", "0"],
-        textStyle: {
-          color: "var(--text-primary)",
-          fontSize: 10,
-        },
-        pieces: [
-          { min: 0, max: 10, color: "#E6E2FB" },
-          { min: 10, max: 20, color: "#B8A8F4" },
-          { min: 20, max: 30, color: "#7459E6" },
-          { min: 30, max: 40, color: "#5034C4" },
-          { min: 40, max: 50, color: "#2F1C96" },
-          { min: 50, color: "#2F1C96" },
-        ],
-        show: true,
-        orient: "vertical",
-        itemWidth: 20,
-        itemHeight: 20,
-        seriesIndex: [], // 不应用到任何系列，仅作为图例显示
-      },
+      ],
+      // visualMap: {
+      //   min: 0,
+      //   max: 50,
+      //   left: "left",
+      //   top: "center",
+      //   text: ["50+", "0"],
+      //   textStyle: {
+      //     color: "var(--text-primary)",
+      //     fontSize: 10,
+      //   },
+      //   pieces: [
+      //     { min: 0, max: 10, color: "#E6E2FB" },
+      //     { min: 10, max: 20, color: "#B8A8F4" },
+      //     { min: 20, max: 30, color: "#7459E6" },
+      //     { min: 30, max: 40, color: "#5034C4" },
+      //     { min: 40, max: 50, color: "#2F1C96" },
+      //     { min: 50, color: "#2F1C96" },
+      //   ],
+      //   show: true,
+      //   orient: "vertical",
+      //   itemWidth: 20,
+      //   itemHeight: 20,
+      //   seriesIndex: [], // 不应用到任何系列，仅作为图例显示
+      // },
 
       tooltip: {
         trigger: "item",
-        backgroundColor: "var(--background)",
-        borderColor: "var(--border)",
+        backgroundColor: "var(--surface-popover)",
+        borderColor: "#FFFFFF",
         borderWidth: 1,
         borderRadius: 8,
         padding: 12,
         textStyle: {
-          color: "var(--foreground)",
+          color: "var(--text-primary)",
         },
         confine: true,
+        extraCssText: "box-shadow: 0px 4px 6px 0px rgba(0,0,0,0.08);",
         formatter: (params: unknown) => {
           const param = params as {
             componentType: string;
@@ -349,19 +419,18 @@ export default function NodeNetworkMap({
             };
           };
 
-          // 连线 tooltip (先判断连线，因为连线数据有 node1Name 和 node2Name)
+          // 连线 tooltip
           if (
             param.seriesType === "lines" &&
             param.data?.node1Name &&
             param.data?.node2Name
           ) {
             return `
-              <div class="p-2">
-                <div class="font-semibold text-primary mb-1">Channel Connection</div>
-                <div class="text-sm text-muted-foreground mb-1">${param.data.node1Name} ↔ ${param.data.node2Name}</div>
-                <div class="text-sm">
-                  <span class="text-foreground">Channels:</span> 
-                  <span class="font-medium text-primary">${param.data.channelCount}</span>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <div style="color: var(--text-primary); font-size: 12px; font-weight: 700; line-height: 16px;">Channel Connection</div>
+                  <div style="color: var(--text-tertiary); font-size: 12px; font-weight: 500; line-height: 16px;">${param.data.node1Name} ↔ ${param.data.node2Name}</div>
+                  <div style="color: var(--text-tertiary); font-size: 12px; font-weight: 500; line-height: 16px;">${param.data.channelCount} channels</div>
                 </div>
               </div>
             `;
@@ -372,16 +441,28 @@ export default function NodeNetworkMap({
             const location = [param.data.city, param.data.country]
               .filter(Boolean)
               .join(", ");
-            // 重新从 nodeChannelCount Map 中获取 channelCount
             const channelCount =
               nodeChannelCount.get(param.data.nodeId || "") || 0;
+            const shortNodeId = param.data.nodeId ? 
+              `${param.data.nodeId.slice(0, 7)}...${param.data.nodeId.slice(-4)}` : 
+              "";
+            
             return `
-              <div class="p-2">
-                <div class="font-semibold text-primary mb-1">${param.data.nodeName || param.data.nodeId?.slice(0, 12) || param.name}</div>
-                ${location ? `<div class="text-sm text-muted-foreground mb-1">📍 ${location}</div>` : ""}
-                <div class="text-sm"><span class="text-foreground">Channels:</span> <span class="font-medium text-primary">${channelCount}</span></div>
-                ${param.data.capacity ? `<div class="text-sm"><span class="text-foreground">Capacity:</span> <span class="font-medium text-primary">${param.data.capacity.toLocaleString()} CKB</span></div>` : ""}
-                ${param.data.isCurrentNode ? `<div class="text-sm text-purple mt-1">● Current Node</div>` : ""}
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <div style="color: var(--text-primary); font-size: 12px; font-weight: 700; line-height: 16px;">${param.data.nodeName || param.name}</div>
+                  ${shortNodeId ? `<div style="color: var(--purple); font-size: 12px; font-weight: 500; line-height: 16px;">${shortNodeId}</div>` : ""}
+                  <div style="color: var(--text-tertiary); font-size: 12px; font-weight: 500; line-height: 16px;">${channelCount} channels</div>
+                </div>
+                ${location ? `
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 6.90909C13 10.7273 8 14 8 14C8 14 3 10.7273 3 6.90909C3 5.60712 3.52678 4.35847 4.46447 3.43784C5.40215 2.51721 6.67392 2 8 2C9.32608 2 10.5979 2.51721 11.5355 3.43784C12.4732 4.35847 13 5.60712 13 6.90909Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M8 8.54545C8.92047 8.54545 9.66667 7.81283 9.66667 6.90909C9.66667 6.00535 8.92047 5.27273 8 5.27273C7.07953 5.27273 6.33333 6.00535 6.33333 6.90909C6.33333 7.81283 7.07953 8.54545 8 8.54545Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div style="color: var(--text-primary); font-size: 12px; font-weight: 500; line-height: 16px;">${location}</div>
+                  </div>
+                ` : ""}
               </div>
             `;
           }
@@ -391,13 +472,15 @@ export default function NodeNetworkMap({
       },
 
       series: [
-        // 连线系列
-        ...(lineSeries as echarts.SeriesOption[]),
+        // 连线系列（仅在 showChannels 为 true 时显示）
+        ...(showChannels ? (lineSeries as echarts.SeriesOption[]) : []),
         // 节点散点
         {
           name: `Nodes (${nodeScatterData.length})`,
           type: "scatter",
           coordinateSystem: "geo",
+          geoIndex: 1, // 使用主地图层
+          zlevel: 3, // 节点在最上层
           z: 2,
           data: nodeScatterData,
           symbolSize: 16,
@@ -427,9 +510,48 @@ export default function NodeNetworkMap({
       ],
     };
 
-    chartInstance.current.setOption(option);
+    chartInstance.current.setOption(option, {
+      notMerge: true, // 不合并配置，完全替换
+      lazyUpdate: false,
+    });
     setMapLoaded(true);
-  }, [nodes, connections, currentNodeId, title]);
+
+    // 清理事件监听
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.off('georoam');
+      }
+    };
+  }, [nodes, connections, currentNodeId, title, showChannels]);
+
+  // 缩放控制函数
+  const handleZoomIn = () => {
+    if (chartInstance.current) {
+      const option = chartInstance.current.getOption() as echarts.EChartsOption;
+      const currentZoom = (option.geo as echarts.GeoComponentOption[])?.[0]?.zoom || 1.2;
+      const newZoom = Math.min(currentZoom * 1.2, 10); // 最大放大10倍
+      chartInstance.current.setOption({
+        geo: [
+          { zoom: newZoom }, // 阴影层
+          { zoom: newZoom }, // 主地图层
+        ],
+      });
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (chartInstance.current) {
+      const option = chartInstance.current.getOption() as echarts.EChartsOption;
+      const currentZoom = (option.geo as echarts.GeoComponentOption[])?.[0]?.zoom || 1.2;
+      const newZoom = Math.max(currentZoom / 1.2, 0.5); // 最小缩小到0.5倍
+      chartInstance.current.setOption({
+        geo: [
+          { zoom: newZoom }, // 阴影层
+          { zoom: newZoom }, // 主地图层
+        ],
+      });
+    }
+  };
 
   return (
     <div style={{ position: "relative" }} className={className}>
@@ -439,9 +561,23 @@ export default function NodeNetworkMap({
         style={{
           height,
           position: "relative",
-          filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.01))",
+          // filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.01))",
         }}
       />
+
+      {/* 左下角图例 */}
+      <div className="absolute left-4 bottom-4 z-10 flex flex-col gap-2">
+        <ChannelsLegend />
+        <ChannelsToggle 
+          showChannels={showChannels} 
+          onToggle={() => setShowChannels(!showChannels)} 
+        />
+      </div>
+
+      {/* 右下角缩放控制 */}
+      <div className="absolute right-4 bottom-4 z-10">
+        <MapZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
+      </div>
 
       {!mapLoaded && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

@@ -29,7 +29,10 @@ export default function FooterNew() {
           {/* Left section - Brand */}
           <div className="w-full md:w-80 flex flex-col justify-between gap-6">
             <div className="flex flex-col gap-3">
-              <div className="text-primary footer-brand-title">Fiber Dashboard</div>
+              <div className="flex items-center gap-2">
+                <Image src="/logo_m.svg" alt="Fiber" width={17} height={24} />
+                <Image src="/logo_text.svg" alt="Fiber Dashboard" width={140} height={40} />
+              </div>
               <div className="text-secondary type-body">
                 Real-time insights into the CKB Lightning Network - Fiber
               </div>

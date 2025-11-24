@@ -16,7 +16,6 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useNetwork } from "@/features/networks/context/NetworkContext";
 
-
 // 基础导航项数据
 const NAV_ITEMS_DATA = [
   { id: "overview", label: "Overview", path: "/" },
@@ -78,19 +77,21 @@ export default function NavBarNew() {
     // 精确匹配
     const exactMatch = NAV_ITEMS_DATA.find(item => item.path === path);
     if (exactMatch) return exactMatch.id;
-    
+
     // 动态路由匹配（例如 /nodes/xxx 或 /node/xxx 匹配到 nodes）
-    if (path.startsWith('/node')) return 'nodes';
-    if (path.startsWith('/channel')) return 'channels';
-    
+    if (path.startsWith("/node")) return "nodes";
+    if (path.startsWith("/channel")) return "channels";
+
     return "overview";
   };
 
   // 使用 NetworkContext 来管理网络状态
   const { currentNetwork, switchNetwork } = useNetwork();
-  
+
   // 统一管理选中的 tab 状态
-  const [selectedTab, setSelectedTab] = useState(() => getTabIdFromPath(pathname));
+  const [selectedTab, setSelectedTab] = useState(() =>
+    getTabIdFromPath(pathname)
+  );
 
   // 监听路由变化,同步更新 selectedTab
   useEffect(() => {
@@ -117,7 +118,25 @@ export default function NavBarNew() {
         {/* Left item - Logo */}
         <div className="flex items-center">
           <div className="glass-card flex justify-center items-center w-12 h-12 p-2.5 rounded-full shrink-0 lg:w-[207px] lg:h-12 lg:gap-2.5 lg:rounded-[40px]">
-            <span className="type-button1 text-primary">Logo</span>
+            {/* Desktop Logo */}
+            <div className="hidden lg:flex items-center gap-2">
+              <Image src="/logo_m.svg" alt="Fiber" width={17} height={24} />
+              <Image
+                src="/logo_text.svg"
+                alt="Fiber Dashboard"
+                width={140}
+                height={40}
+              />
+            </div>
+
+            {/* Mobile Logo */}
+            <Image
+              src="/logo_m.svg"
+              alt="Logo"
+              width={19.66}
+              height={27.62}
+              className="block lg:hidden m-auto"
+            />
           </div>
         </div>
 
