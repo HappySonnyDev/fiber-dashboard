@@ -148,6 +148,7 @@ export const NodeTreeMap: React.FC<NodeTreeMapProps> = ({
         backgroundColor: "transparent",
         borderWidth: 0,
         padding: 0,
+        appendToBody: true,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
           const dataItem = params.data as {
